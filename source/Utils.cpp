@@ -51,13 +51,13 @@ std::vector<AmiiboEntry> scanForAmiibo(const char* path)
             return false;
         });
         //Prepend favorites if path is sdmc:/emuiibo/amiibo
-        if(!strcmp(path, "sdmc:/emuiibo/amiibo")) amiibos.insert(amiibos.begin(), {"¤ Favorites", true, "Favorites"});
+        if(!strcmp(path, "sdmc:/emuiibo/amiibo")) amiibos.insert(amiibos.begin(), {"¤ Favoriten", true, "Favorites"});
         //If not in "sdmc:/emuiibo/amiibo" then add back entry
         else
         {
             std::string upDir = path;
             upDir = upDir.substr(0, upDir.find_last_of("/"));
-            amiibos.insert(amiibos.begin(), {"¤ Back", true, upDir});
+            amiibos.insert(amiibos.begin(), {"¤ Zurueck", true, upDir});
         }
         return amiibos;
     }
@@ -65,7 +65,7 @@ std::vector<AmiiboEntry> scanForAmiibo(const char* path)
     if(!strcmp(path, "Favorites"))
     {
         //Add in the back button
-        amiibos.insert(amiibos.begin(), {"¤ Back", true, "sdmc:/emuiibo/amiibo"});
+        amiibos.insert(amiibos.begin(), {"¤ Zurueck", true, "sdmc:/emuiibo/amiibo"});
         //Read each line from the favorites file
         std::string tempLine;
         std::ifstream fileStream("sdmc:/emuiibo/overlay/favorites.txt");
@@ -101,9 +101,9 @@ std::vector<std::string> getListOfSeries()
         //Check API cache is valid
         if(APIJson.is_discarded())
         {
-            printf("API cache is corrupt\n");
+            printf("API Cache ist beschaedigt\n");
             remove("sdmc:/config/amiigo/API.json");
-            return {"Error, API cache corrupt!", "Try updating cache in settings!"};
+            return {"Fehler, API Cache beschaedigt!", "Versuche den Cache in den Einstellungen zu aktualisieren!"};
         }
         //Loop over every entry under the Amiibo object
         for (int i = 0; i < APIJson["amiibo"].size(); i++)
@@ -119,7 +119,7 @@ std::vector<std::string> getListOfSeries()
             if(!isKnown) series.push_back(seriesName);
         }
     }
-    else return {"Error, no API cache!"};
+    else return {"Fehler, kein API Cache!"};
     //Sort alphabetically
     std::sort(series.begin(), series.end(), [](std::string seriesA, std::string seriesB)->bool{
         int maxLength = (seriesA.length() < seriesB.length()) ? seriesA.length() : seriesB.length();
@@ -198,7 +198,7 @@ std::vector<AmiiboCreatorData> getAmiibosFromSeries(std::string series)
             }
         }
     }
-    else return {{"Error, API cache vanished?",0,0,0,0,0}};
+    else return {{"Fehler, API Cache verschwunden?",0,0,0,0,0}};
     //Sort alphabetically
     std::sort(amiibos.begin(), amiibos.end(), [](AmiiboCreatorData amiiboA, AmiiboCreatorData amiiboB)->bool{
         int maxLength = (amiiboA.name.length() < amiiboB.name.length()) ? amiiboA.name.length() : amiiboB.name.length();
@@ -294,7 +294,7 @@ void firstTimeSetup()
         nlohmann::json emuiiboInfo;
         while (!hasValidEmuiiboJSON)
         {
-            printf("Downloading Emuiibo zip\n");
+            printf("Lade emuiibo zip herunter\n");
             while(!hasNetworkConnection());
             if(checkIfFileExists("sdmc:/config/amiigo/emuiibo.tmp")) remove("sdmc:/config/amiigo/emuiibo.tmp");
             //We should probably do this in a more robust way
@@ -305,7 +305,7 @@ void firstTimeSetup()
         }
         printf("hasValidEmuiiboJSON: %d\n", hasValidEmuiiboJSON);
         while(!retrieveToFile(emuiiboInfo[0]["assets"][0]["browser_download_url"].get<std::string>().c_str(), "sdmc:/config/amiigo/emuiibo.tmp"));
-        printf("Unzipping\n");
+        printf("Entpacke\n");
         //Extract the files from the emuiibo zip
         mkdir("sdmc:/atmosphere/contents/", 0);
         mkdir("sdmc:/atmosphere/contents/0100000000000352/", 0);
@@ -321,7 +321,7 @@ void firstTimeSetup()
             unz_file_info fileInfo;
             unzOpenCurrentFile(zipFile);
             unzGetCurrentFileInfo(zipFile, &fileInfo, fileName, sizeof(fileName), nullptr, 0, nullptr, 0);
-            printf("Zip index:%d is %s\n", i, fileName);
+            printf("Zip Index:%d is %s\n", i, fileName);
             if(strcmp("SdOut/atmosphere/contents/0100000000000352/exefs.nsp", fileName) == 0)
             {
                 void* buffer = malloc(500000);
@@ -337,7 +337,7 @@ void firstTimeSetup()
             unzCloseCurrentFile(zipFile);
             unzGoToNextFile(zipFile);
         }
-        printf("Unzip done\n");
+        printf("fertig entpackt\n");
         unzClose(zipFile);
         remove("sdmc:/config/amiigo/emuiibo.tmp");
         //Launch the sysmodule
@@ -365,14 +365,14 @@ void firstTimeSetup()
 
 bool checkForUpdates()
 {
-    printf("Checking for updates\n");
+    printf("Ueberpruefe auf Updates\n");
     //Return false if no internet
     if(!hasNetworkConnection())
     {
-        printf("No connection\b");
+        printf("Keine Verbindung\b");
         return false;
     }
-    printf("Getting network time\n");
+    printf("Netzwerkzeit erhalten\n");
     timeInitialize();
     long unsigned int time = Amiigo::Settings::updateTime;
     timeGetCurrentTime(TimeType_NetworkSystemClock, &time);
@@ -380,16 +380,16 @@ bool checkForUpdates()
     //Only check for updates once every 24 hours, unless an update is found.
     if(Amiigo::Settings::updateTime > time)
     {
-        printf("Last check less than 24 hours ago\n");
+        printf("Letzte Pruefung vor weniger als 24 Stunden\n");
         return false;
     }
-    printf("Getting API data\n");
+    printf("API-Daten abrufen\n");
     std::string amiigoReleaseInfo;
     bool releaseInfoSuccess = retrieveToString("https://api.github.com/repos/CompSciOrBust/Amiigo/releases", "application/json", &amiigoReleaseInfo);
     if(amiigoReleaseInfo.size() < 300 || !releaseInfoSuccess) //User is probably being rate limited
     {
         printf("%s\n", amiigoReleaseInfo.c_str());
-        printf("Error, getting Amiigo update info failed\n");
+        printf("Fehler, Abrufen von Amiigo-Update-Informationen fehlgeschlagen\n");
         return false;
     }
     nlohmann::json amiigoInfoParsed = nlohmann::json::parse(amiigoReleaseInfo, nullptr, false);
@@ -397,7 +397,7 @@ bool checkForUpdates()
     if(amiigoInfoParsed.is_discarded())
     {
         printf("%s\n", amiigoReleaseInfo.c_str());
-        printf("Error, Amiigo update info corrupt\n");
+        printf("Fehler, Amiigo Update Info beschaedigt\n");
         return false;
     }
     //If on the latest update wait another 24 hours before checking again
